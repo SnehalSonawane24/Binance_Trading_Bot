@@ -7,6 +7,9 @@ from binance.enums import *
 # log activity tracking
 from logger import setup_logger
 
+# New Parameter to support stop_market orders
+ORDER_TYPE_STOP_MARKET = 'STOP_MARKET'
+
 # logger instance - log message to logger file
 logger = setup_logger()
 
@@ -22,7 +25,7 @@ class BasicBot:
         logger.info("Connected to Binance Futures Testnet")
     
     # Market and limit order
-    def place_order(self, symbol, side, order_type, quantity, price=None):
+    def place_order(self, symbol, side, order_type, quantity, price=None, stop_price=None):
         try:
             # Prepares order parameters 
             # Convert buy/sell string to enum like SIDE_BUY
@@ -35,6 +38,13 @@ class BasicBot:
             # If it’s a LIMIT order, you must provide a price and a time-in-force policy (GTC = Good Till Cancelled).
             if order_type == ORDER_TYPE_LIMIT:
                 order_params['price'] = price
+                order_params['timeInForce'] = TIME_IN_FORCE_GTC
+
+            # If user selects stop_market as order type - then pass stopPrice to binance
+            # timeInForce for - how long order is valid (GTC - Good till cancelled)
+            # Binance uses STOP_MARKET to place a market order only if the price crosses a trigger.
+            elif order_type == ORDER_TYPE_STOP_MARKET:
+                order_params['stopPrice'] = stop_price
                 order_params['timeInForce'] = TIME_IN_FORCE_GTC
 
             # order logs

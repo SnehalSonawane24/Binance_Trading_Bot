@@ -4,6 +4,7 @@ import argparse
 import os
 from dotenv import load_dotenv
 from bot import BasicBot
+from strategy import momentum_strategy
 
 # loads env varibles from .env 
 load_dotenv()
@@ -24,12 +25,33 @@ def main():
     parser.add_argument('--type', choices=['MARKET', 'LIMIT'], required=True, help="Order type")
     parser.add_argument('--quantity', type=float, required=True, help="Quantity to trade")
     parser.add_argument('--price', type=float, help="Price for LIMIT orders")
+    parser.add_argument('--stop_price', type=float, help="Stop price for STOP_MARKET orders")
+    parser.add_argument('--strategy', action='store_true', help="Use momentum strategy to decide side")
 
     args = parser.parse_args()
 
     bot = BasicBot(API_KEY, API_SECRET)
-    result = bot.place_order(args.symbol, args.side, args.type, args.quantity, args.price)
 
+    # Use strategy to decide side
+
+    side = args.side
+    # If strategy is passed,
+    if args.strategy:
+        side = momentum_strategy(bot.client, args.symbol)
+        if not side:
+            print("⚠️ Strategy gave no signal. Exiting.")
+            return
+        print(f"📈 Strategy chose to {side.upper()}")
+
+     # Place order
+    result = bot.place_order(
+        symbol=args.symbol,
+        side=side,
+        order_type=args.type,
+        quantity=args.quantity,
+        price=args.price,
+        stop_price=args.stop_price
+    )
     if result:
         print("Order placed successfully")
     else:
